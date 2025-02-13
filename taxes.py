@@ -107,6 +107,7 @@ class CombinedTaxBracket:
     income_rate: float
     marginal_capital: float
     marginal_nii: float
+def _apply_capital_taxes(combined_brackets, capital_brackets, nii_brackets):
     adjusted_brackets = []
     for combined in combined_brackets:
         for capital_rate, capital_bracket in capital_brackets:
