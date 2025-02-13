@@ -24,12 +24,25 @@ class TestTaxCalculations(unittest.TestCase):
 
     def test_rates(self):
         brackets = [(0.1, 10000), (0.2, 20000), (0.3, 99999999)]
-        self.assertEqual(_rates(5000, 1000, brackets), [( (5000, 6000), .1  )]       )
-        self.assertEqual(_rates(5000, 6000, brackets), [( (5000, 10000), .1  ), ((10000, 11000), .2  )]       )
-        self.assertEqual(_rates(5000, 40000, brackets), [( (5000, 10000), .1  ), ((10000, 20000), .2  ), ((20000, 45000), .3  )]       )
+        self.assertEqual(_rates(5000, 1000, brackets), [
+            CombinedTaxBracket(lower=5000, upper=6000, income_rate=0.1, marginal_capital=0, marginal_nii=0)
+        ])
+        self.assertEqual(_rates(5000, 6000, brackets), [
+            CombinedTaxBracket(lower=5000, upper=10000, income_rate=0.1, marginal_capital=0, marginal_nii=0),
+            CombinedTaxBracket(lower=10000, upper=11000, income_rate=0.2, marginal_capital=0, marginal_nii=0)
+        ])
+        self.assertEqual(_rates(5000, 40000, brackets), [
+            CombinedTaxBracket(lower=5000, upper=10000, income_rate=0.1, marginal_capital=0, marginal_nii=0),
+            CombinedTaxBracket(lower=10000, upper=20000, income_rate=0.2, marginal_capital=0, marginal_nii=0),
+            CombinedTaxBracket(lower=20000, upper=45000, income_rate=0.3, marginal_capital=0, marginal_nii=0)
+        ])
 
     def test_apply_capital_taxes(self):
-        combined_brackets = [(0.1, 10000), (0.2, 20000), (0.3, 99999999)]
+        combined_brackets = [
+            CombinedTaxBracket(lower=0, upper=10000, income_rate=0.1, marginal_capital=0, marginal_nii=0),
+            CombinedTaxBracket(lower=10000, upper=20000, income_rate=0.2, marginal_capital=0, marginal_nii=0),
+            CombinedTaxBracket(lower=20000, upper=99999999, income_rate=0.3, marginal_capital=0, marginal_nii=0)
+        ]
         capital_brackets = [(0, 15000), (.15, 25000), (.2, 99999999)]
         nii_brackets = [(0, 12000), (.1, 9999999)]
 
