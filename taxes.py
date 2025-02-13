@@ -1,4 +1,4 @@
-from os import waitstatus_to_exitcode
+from dataclasses import dataclass
 from dataclasses import dataclass
 
 MAX_INCOME = 9999999
@@ -100,7 +100,13 @@ def _combine_state_federal_brackets(federal, state):
             state_idx += 1
     return combined
 
-def _apply_capital_taxes(combined_brackets, capital_brackets, nii_brackets):
+@dataclass
+class CombinedTaxBracket:
+    lower: float
+    upper: float
+    income_rate: float
+    marginal_capital: float
+    marginal_nii: float
     adjusted_brackets = []
     for combined in combined_brackets:
         for capital_rate, capital_bracket in capital_brackets:
