@@ -1,5 +1,5 @@
 from os import waitstatus_to_exitcode
-
+from dataclasses import dataclass
 
 MAX_INCOME = 9999999
 
@@ -100,7 +100,13 @@ def _combine_state_federal_brackets(federal, state):
             state_idx += 1
     return combined
 
-
+@dataclass
+class CombinedTaxBracket:
+    lower: float
+    upper: float
+    income_rate: float
+    marginal_capital: float
+    marginal_nii: float
 
 def _rates(base_income, max_convert, brackets):
     rates = []
@@ -119,6 +125,7 @@ def _rates(base_income, max_convert, brackets):
             break
         prev_bracket = bracket
     return rates
+
 
 def keypoints(base_income, capital_gains, longterm_gains, max_convert, federal_brackets, state_brackets, capital_brackets, nii_brackets):
     brackets = _combine_state_federal_brackets(federal_brackets, state_brackets)
