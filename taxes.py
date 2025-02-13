@@ -100,16 +100,25 @@ def _combine_state_federal_brackets(federal, state):
             state_idx += 1
     return combined
 
-@dataclass
-class CombinedTaxBracket:
-    lower: float
-    upper: float
-    income_rate: float
-    marginal_capital: float
-    marginal_nii: float
+def _apply_capital_taxes(combined_brackets, capital_brackets, nii_brackets):
+    adjusted_brackets = []
+    for combined in combined_brackets:
+        for capital_rate, capital_bracket in capital_brackets:
+            for nii_rate, nii_bracket in nii_brackets:
+                lower = max(combined.lower, capital_bracket, nii_bracket)
+                upper = min(combined.upper, capital_bracket, nii_bracket)
+                if lower < upper:
+                    adjusted_brackets.append(CombinedTaxBracket(
+                        lower=lower,
+                        upper=upper,
+                        income_rate=combined.income_rate,
+                        marginal_capital=capital_rate,
+                        marginal_nii=nii_rate
+                    ))
+    return adjusted_brackets
 
 def _rates(base_income, max_convert, brackets):
-    rates = []
+    combined_brackets = []
     max_income = base_income + max_convert
     prev_bracket = 0
     for rate, bracket in brackets:
@@ -117,14 +126,14 @@ def _rates(base_income, max_convert, brackets):
             continue
         elif base_income > prev_bracket:
             upper = min(bracket, base_income + max_convert)
-            rates.append( ( (base_income, upper),  rate)   )
+            combined_brackets.append(CombinedTaxBracket(lower=base_income, upper=upper, income_rate=rate, marginal_capital=0, marginal_nii=0))
         elif max_income > prev_bracket:
             upper = min(bracket, base_income + max_convert)
-            rates.append( ((prev_bracket, upper), rate) )
+            combined_brackets.append(CombinedTaxBracket(lower=prev_bracket, upper=upper, income_rate=rate, marginal_capital=0, marginal_nii=0))
         else:
             break
         prev_bracket = bracket
-    return rates
+    return combined_brackets
 
 
 def keypoints(base_income, capital_gains, longterm_gains, max_convert, federal_brackets, state_brackets, capital_brackets, nii_brackets):
