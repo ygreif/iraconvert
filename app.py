@@ -81,12 +81,29 @@ def server(input, output, session):
 
     @render.plot
     def taxburden():
-        pretax_income = input.pretax_income()
+        pretax_income = float(input.pretax_income().replace("$", "").replace(",", ""))
         deduction_type = input.deduction_type()
         if deduction_type == "zcustom":
-            deduction = input.deduction()
+            deduction_value = float(input.deduction().replace("$", "").replace(",", ""))
         else:
-            deduction = taxes.deduction(deduction_type, input.tax_year())
+            deduction_value = taxes.deduction(deduction_type, input.tax_year())
+
+        # Determine the tax year and filing status
+        tax_year = input.tax_year()
+        filing_status = input.deduction_type()
+
+        # Select federal and state brackets
+        federal_brackets = taxes.FEDERAL_BRACKETS[tax_year][filing_status]
+        state_brackets = taxes.STATE_BRACKETS["CA"][tax_year][filing_status]  # Example for California
+
+        # Combine federal and state brackets
+        combined_brackets = taxes._combine_state_federal_brackets(federal_brackets, state_brackets)
+
+        # Convert to TaxBracket objects
+        tax_brackets = [
+            taxes.TaxBracket(lower=prev_bracket, upper=bracket, state_rate=state_rate, federal_rate=federal_rate, nit=0, longterm=0)
+            for (federal_rate, bracket), (state_rate, _) in zip(combined_brackets, state_brackets)
+        ]
 
 
 
