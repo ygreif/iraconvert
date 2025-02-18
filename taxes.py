@@ -107,22 +107,12 @@ class CombinedTaxBracket:
     income_rate: float
     marginal_capital: float
     marginal_nii: float
-def _apply_capital_taxes(combined_brackets, capital_brackets, nii_brackets):
-    adjusted_brackets = []
-    for combined in combined_brackets:
-        for capital_rate, capital_bracket in capital_brackets:
-            for nii_rate, nii_bracket in nii_brackets:
-                lower = max(combined.lower, capital_bracket, nii_bracket)
-                upper = min(combined.upper, capital_bracket, nii_bracket)
-                if lower < upper:
-                    adjusted_brackets.append(CombinedTaxBracket(
-                        lower=lower,
-                        upper=upper,
-                        income_rate=combined.income_rate,
-                        marginal_capital=capital_rate,
-                        marginal_nii=nii_rate
-                    ))
-    return adjusted_brackets
+
+def _apply_capital_taxes(base_income, max_convert, income_brackets, capital_brackets, type_):
+    prev_rate = capital_brackets[-1][0]
+    prev_upper = capital_brackets[-1][1]
+
+
 
 def _rates(base_income, max_convert, brackets):
     combined_brackets = []

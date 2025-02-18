@@ -3,11 +3,67 @@ from dataclasses import dataclass
 import plotly.graph_objects as go
 from typing import List
 
+def plot_tax_brackets(current_income: float,
+                      longterm_gains: float,
+                      investment_income: float,
+                      max_amount: float,
+                      tax_brackets: List[TaxBracket],
+                      max_conversion: float) -> go.Figure:
+    """
+    Creates a plot showing marginal tax rates for different Roth conversion amounts.
+    Handles regular income tax, long-term capital gains, and investment income tax.
+    """
+    # Get key points where tax calculation changes
+    taxes = []
+    conversion_amounts = []
+    names = []
+
+    cur_longterm = 0
+    cur_nit = 0
+
+    for idx in range(len(tax_brackets)):
+        bracket = tax_brackets[idx]
+        income_rate = bracket.state_rate + bracket.federal_rate
+        if bracket.nit > 0 or bracket.longterm > 0:
+            if bracket.nit > 0:
+                marginal_nit = bracket.nit - cur_nit
+                taxes.append([(investment_income * marginal_nit) / current_income + income_rate])
+                cur_nit = bracket.nit
+            if bracket.longterm > 0:
+                marginal_longterm = bracket.longterm - cur_longterm
+                taxes.append([(longterm_gains * marginal_longterm) / current_income + income_rate])
+                cur_longterm = bracket.longterm
+            conversion_amounts.append([bracket.upper - current_income])
+        else:
+            taxes.append([bracket.state_rate + bracket.federal_rate] * 2)
+            conversion_amounts.append([bracket.lower - current_income, bracket.upper - current_income])
+
+    # Create the plot
+    fig = go.Figure()
+    for amounts, tax in zip(conversion_amounts, taxes):
+        if len(amounts) > 1:
+            fig.add_trace(go.Scatter(
+                x=amounts,
+                y=tax,
+                mode='lines',
+                name='Tax Bracket',
+                line=dict(width=4)))
+        else:
+            fig.add_trace(go.Scatter
+                          (x=amounts,
+                           y=tax,
+                           mode='markers',
+                           name='Tax Bracket',
+                           marker=dict(size=10)))
+    return fig
+
+
+
 def plot_roth_conversion_tax(current_income: float,
                            longterm_gains: float,
                            investment_income: float,
                            max_amount: float,
-                           tax_brackets: List[TaxBracket],
+                          tax_brackets: List[TaxBracket],
                            max_conversion: float) -> go.Figure:
     """
     Creates a plot showing total tax owed for different Roth conversion amounts.
@@ -20,11 +76,11 @@ def plot_roth_conversion_tax(current_income: float,
     last_total = None
     discontinuities = []  # Track points where we need to break the line
 
-    hit_conversion = False
+    hit_capital = False
     total_tax = 0
     for bracket in tax_brackets:
         if bracket.nit > 0 or bracket.longterm > 0:
-            hit_conversion = True
+            hit_capital = True
             if last_total is not None:
                 discontinuities.append(len(taxes))
             if bracket.nit > 0:
@@ -38,20 +94,6 @@ def plot_roth_conversion_tax(current_income: float,
         taxes.append(total_tax)
         conversion_amounts.append(bracket.upper - current_income)
         last_total = total_tax
-
-    """
-    # plot with seaborn
-    import seaborn as sns
-    import matplotlib.pyplot as plt
-    sns.set(style="whitegrid")
-    fig, ax = plt.subplots(figsize=(10, 6))
-    sns.lineplot(x=conversion_amounts, y=taxes, ax=ax)
-    ax.set_title('Total Tax vs Roth Conversion Amount')
-    ax.set_xlabel('Roth Conversion Amount ($)')
-    ax.set_ylabel('Total Tax ($)')
-    plt.show()
-    """
-
 
     # Create the plot
     fig = go.Figure()
@@ -92,15 +134,11 @@ def plot_roth_conversion_tax(current_income: float,
 
 if __name__ == '__main__':
     brackets = [
-            TaxBracket(lower=10, upper=9875, state_rate=0.05, federal_rate=.1, nit=0, longterm=0),
-            TaxBracket(lower=9875, upper=10000, state_rate=0.07, federal_rate=0.1, nit=0, longterm=0),
-            TaxBracket(lower=10000, upper=40125, state_rate=0.07, federal_rate=0.12, nit=0, longterm=0),
-            TaxBracket(lower=40125, upper=50000, state_rate=0.09, federal_rate=0.12, nit=0, longterm=0),
             TaxBracket(lower=50000, upper=50000, state_rate=0.09, federal_rate=0.12, nit=0, longterm=.15),
             TaxBracket(lower=50000, upper=60000, state_rate=0.09, federal_rate=0.12, nit=0, longterm=0),
             TaxBracket(lower=60000, upper=100000, state_rate=0.09, federal_rate=0.22, nit=0, longterm=0),
             TaxBracket(lower=100000, upper=100000, state_rate=0.09, federal_rate=0.22, nit=.038, longterm=0),
             TaxBracket(lower=100000, upper=120010, state_rate=0.09, federal_rate=0.22, nit=0, longterm=0),
         ]
-    fig = plot_roth_conversion_tax(10, 50000, 10000, 120000, brackets, 120000)
+    fig = plot_tax_brackets(50000, 10000, 1000, 100000, brackets, 100000)
     fig.show()
