@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from dataclasses import dataclass
+import compute_taxes
 
 MAX_INCOME = 9999999
 
@@ -15,6 +15,7 @@ CALIFORNIA_2024_SINGLE_BRACKETS = [ (.01, 10756), (.02, 25499), (.04, 40245), (.
 CALIFORNIA_2024_MARRIED_BRACKETS = [ (.01, 21512), (.02, 50998), (.04, 80490), (.06, 111732), (.08, 141212), (.093, 721318), (.103, 865574), (.113, 1442628), (.123, MAX_INCOME) ]
 CALIFORNIA_2024_HEAD_BRACKETS = [ (.01, 21527), (.02, 51000), (.04, 65744), (.06, 81364), (.08, 96107), (.093, 490493), (.103, 588593), (.113, 980987), (.123, MAX_INCOME) ]
 
+NO_INCOME_BRACKET = [(0, MAX_INCOME),]
 
 def adjust(brackets, ccpi=.03):
     return [(rate, bracket * (1.0 + ccpi)) for rate, bracket in brackets]
@@ -113,32 +114,27 @@ def _apply_capital_taxes(base_income, max_convert, income_brackets, capital_brac
     prev_upper = capital_brackets[-1][1]
 
 
+def get_federal_brackets(year):
+    return FEDERAL_BRACKETS[year]
 
-def _rates(base_income, max_convert, brackets):
-    combined_brackets = []
-    max_income = base_income + max_convert
-    prev_bracket = 0
-    for rate, bracket in brackets:
-        if base_income > bracket:
-            continue
-        elif base_income > prev_bracket:
-            upper = min(bracket, base_income + max_convert)
-            combined_brackets.append(CombinedTaxBracket(lower=base_income, upper=upper, income_rate=rate, marginal_capital=0, marginal_nii=0))
-        elif max_income > prev_bracket:
-            upper = min(bracket, base_income + max_convert)
-            combined_brackets.append(CombinedTaxBracket(lower=prev_bracket, upper=upper, income_rate=rate, marginal_capital=0, marginal_nii=0))
-        else:
-            break
-        prev_bracket = bracket
-    return combined_brackets
+def get_state_brackets(state, year, status):
+    if not state in STATE_BRACKETS:
+        return NO_INCOME_BRACKET
+    return STATE_BRACKETS[state][year][status]
 
+def get_gains_brackets(year):
+    return GAINS_RATE[year]
 
-def keypoints(base_income, capital_gains, longterm_gains, max_convert, federal_brackets, state_brackets, capital_brackets, nii_brackets):
-    brackets = _combine_state_federal_brackets(federal_brackets, state_brackets)
-    rates = _rates(base_income, max_convert, brackets)
+def get_nii_brackets():
+    return NII_BRACKETS
 
-    return rates
+def tax_brackets(base_income, max_convert, longterm_gains, investment_income, year, status, state):
+    federal_brackets = get_federal_brackets(year)[status]
+    state_brackets = get_state_brackets(state, year, status)
+    gains_brackets = get_gains_brackets(year)[status]
+    nii_brackets = get_nii_brackets()[status]
 
+    return compute_taxes.rates(base_income, max_convert, federal_brackets, state_brackets, gains_brackets, nii_brackets)
 
 def deduction(status, year):
     return STANDARD_DEDUCTIONS[year][status]

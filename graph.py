@@ -3,11 +3,13 @@ from dataclasses import dataclass
 import plotly.graph_objects as go
 from typing import List
 
+eps = 2000
+
 def plot_tax_brackets(current_income: float,
                       longterm_gains: float,
                       investment_income: float,
-                      max_amount: float,
                       tax_brackets: List[TaxBracket],
+                      future_rate: float,
                       max_conversion: float) -> go.Figure:
     """
     Creates a plot showing marginal tax rates for different Roth conversion amounts.
@@ -16,45 +18,90 @@ def plot_tax_brackets(current_income: float,
     # Get key points where tax calculation changes
     taxes = []
     conversion_amounts = []
+    hovertext = []
     names = []
 
-    cur_longterm = 0
-    cur_nit = 0
 
     for idx in range(len(tax_brackets)):
         bracket = tax_brackets[idx]
         income_rate = bracket.state_rate + bracket.federal_rate
         if bracket.nit > 0 or bracket.longterm > 0:
             if bracket.nit > 0:
-                marginal_nit = bracket.nit - cur_nit
-                taxes.append([(investment_income * marginal_nit) / current_income + income_rate])
+                marginal_nit = bracket.nit #- cur_nit
+                nit_rate = (investment_income * marginal_nit) / current_income
+                hovertext.append([f"Effective Net Investment Tax rate is {100*nit_rate:.2f}% "])
+                taxes.append([nit_rate + income_rate])
+                names.append(f"NIT tax of {100 * marginal_nit:.2f}% on capital income")
                 cur_nit = bracket.nit
             if bracket.longterm > 0:
-                marginal_longterm = bracket.longterm - cur_longterm
-                taxes.append([(longterm_gains * marginal_longterm) / current_income + income_rate])
+                marginal_longterm = bracket.longterm #- cur_longterm
+                capital_rate = (longterm_gains * marginal_longterm) / current_income
+                hovertext.append([
+                    f"Longterm capital gains increased by {100 * marginal_longterm:.2f}% increasing your effective tax rate by {100*capital_rate:.2f}%"])
+                names.append(f"Longterm capital gains tax increase of {100* marginal_longterm:.2f}% on capital income")
+                taxes.append([capital_rate + income_rate])
                 cur_longterm = bracket.longterm
             conversion_amounts.append([bracket.upper - current_income])
         else:
+            if bracket.state_rate:
+                hovertext.append( [f"Federal rate {100*bracket.federal_rate:.2f}%, state rate {100*bracket.state_rate:.2f}%"] * 2)
+                names.append(f"Combined rate {100*(bracket.federal_rate+bracket.state_rate):.2f}%, federal rate {100*bracket.federal_rate:.2f}%, state rate {100*bracket.state_rate:.2f}%")
+            else:
+                hovertext.append([f"Federal rate {100*bracket.federal_rate:.2f}%"] * 2)
+                names.append(f"Federal rate {100*bracket.federal_rate:.2f}%")
             taxes.append([bracket.state_rate + bracket.federal_rate] * 2)
             conversion_amounts.append([bracket.lower - current_income, bracket.upper - current_income])
 
+    # apply eps to brackets bordering nit and longterm points
+    """
+    for idx in range(len(taxes)):
+        if tax_brackets[idx].nit > 0 or tax_brackets[idx].longterm > 0:
+            if idx > 0:
+                conversion_amounts[idx - 1][1] -= eps
+            if idx < len(conversion_amounts) - 1:
+                conversion_amounts[idx + 1][0] += eps
+    """
     # Create the plot
     fig = go.Figure()
-    for amounts, tax in zip(conversion_amounts, taxes):
+    for amounts, tax, hover, name in zip(conversion_amounts, taxes, hovertext, names):
         if len(amounts) > 1:
-            fig.add_trace(go.Scatter(
+             fig.add_trace(go.Scatter(
                 x=amounts,
                 y=tax,
+                hovertext=hover,
+                 hovertemplate='%{hovertext}<extra></extra>',
                 mode='lines',
-                name='Tax Bracket',
+                name=name,
                 line=dict(width=4)))
         else:
             fig.add_trace(go.Scatter
                           (x=amounts,
                            y=tax,
+                           hovertext=hover,
+                           hovertemplate='%{hovertext}<extra></extra>',
                            mode='markers',
-                           name='Tax Bracket',
+                            name=name,
                            marker=dict(size=10)))
+
+    # Add future rate line
+    fig.add_trace(go.Scatter(
+        x=[0, max_conversion],
+        y=[future_rate] * 2,
+        mode='lines',
+        name='Future Rate',
+        line=dict(width=4, dash='dash')
+    ))
+
+    fig.update_xaxes(tickprefix="$")
+    fig.update_yaxes(tickformat=',.0%',)
+
+    fig.update_layout(
+        title='Tax Rate vs Roth Conversion Amount',
+        xaxis_title='Roth Conversion Amount ($)',
+        yaxis_title='Margianl Tax Rate',
+        hovermode='closest',
+        showlegend=True
+    )
     return fig
 
 
