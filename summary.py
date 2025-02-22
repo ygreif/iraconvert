@@ -34,22 +34,27 @@ That will keep your marginal rate at {100 * bracket.total_income_tax():.2f}% whi
 
 Row = namedtuple('Row', ['Total_Income', 'Conversion_Amount', 'Federal_Tax', 'State_Tax', 'NIT_Tax', 'Longterm_Tax', 'Total_Tax'])
 
+DOLLAR_COLUMNS = ['Total Income', 'Conversion Amount', 'Federal Tax', 'State Tax', 'NIT Tax', 'Longterm Tax', 'Total Tax', 'Total Income Tax', 'Total Capital Taxes', 'IRA Conversion Liability']
+
 def table(keypoints: List[float],
           current_income: float,
           longterm_gains: float,
           investment_income: float,
           raw_tax_brackets):
+    assert keypoints[0] == current_income
     rows = []
     for total_income in keypoints:
         federal_tax, state_tax, nit_tax, longterm_tax = compute_taxes(total_income, longterm_gains, investment_income, raw_tax_brackets['federal'], raw_tax_brackets['state'], raw_tax_brackets['longterm'], raw_tax_brackets['nit'])
         rows.append(Row(total_income, total_income - current_income, federal_tax, state_tax, nit_tax, longterm_tax, federal_tax + state_tax + nit_tax + longterm_tax))
+    total_tax_no_conversion = rows[0].Total_Tax
+
     df = pd.DataFrame(rows)
     # fix column names
     df.columns = ['Total Income', 'Conversion Amount', 'Federal Tax', 'State Tax', 'NIT Tax', 'Longterm Tax', 'Total Tax']
     # transform df to only have Total Income, Conversion Amount, Income Tax, Capital Taxes, Total Tax
     df['Total Income Tax'] = df['Federal Tax'] + df['State Tax']
     df['Total Capital Taxes'] = df['Longterm Tax'] + + df['NIT Tax']
-
+    df['IRA Conversion Liability'] = df['Total Tax'].apply(lambda x: x - total_tax_no_conversion)
 #    df = df[['Conversion Amount', 'Total Income Tax', 'Total Capital Taxes', 'Total Tax']]
 
     # format the numbers to be dollarized, pass in as a string
