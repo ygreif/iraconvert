@@ -11,6 +11,13 @@ from shared import dollarize, remove_dollar_formatting, clean_df
 
 app_ui = ui.page_sidebar(
     ui.sidebar(
+        ui.tags.script("""
+        function updateSize() {
+            Shiny.setInputValue("window_width", window.innerWidth);
+        }
+        window.addEventListener("resize", updateSize);
+        updateSize();  // Call on load
+    """),
         ui.input_text("assets", label="IRA/401k Assets", value="$750,000"),
         ui.input_text("pretax_income", label="Taxable Income", value="$100,000"),
         ui.input_text("capital_income", label="Capital Income", value="$40,000"),
@@ -78,6 +85,26 @@ def server(input, output, session):
         for term in DOLLARIZE_TERMS:
             dollarized_income = dollarize(input, term)
             session.send_input_message(term, {"value": dollarized_income})
+
+    @reactive.calc
+    def size():
+        # correspond to sm ec
+        width = float(input.window_width())
+
+        if width < 768:
+            return 'xs'
+        elif width < 992:
+            return 'sm'
+        elif width < 1200:
+            return 'md'
+        elif width < 1600:
+            return 'lg'
+        else:
+            return 'xl'
+
+    @reactive.calc
+    def width():
+        return float(input.window_width())
 
     @reactive.calc
     def compute():
