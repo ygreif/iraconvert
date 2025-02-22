@@ -1,7 +1,3 @@
-import time
-
-import seaborn as sns
-
 from shiny import App, render, ui, reactive
 from shinywidgets import render_plotly, output_widget
 
