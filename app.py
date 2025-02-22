@@ -76,7 +76,10 @@ app_ui = ui.page_sidebar(
     ),
     ui.layout_columns(
         output_widget("taxburden", height='500px'),
-        ui.output_text("text"),
+        ui.card(
+            ui.card_header("Analysis/Recommendation"),
+            ui.output_text("text")
+        ),
         ui.output_data_frame("table"),
         col_widths={'md':(12, 3, 9), 'sm':(12, 12, 12) }
     ),

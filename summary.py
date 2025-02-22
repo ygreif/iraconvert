@@ -29,8 +29,7 @@ def explain(current_income: float,
             return f"""Consider converting {dollarize_raw(max_to_convert)} dollars
 That will keep your marginal rate at {100 * bracket.total_income_tax():.2f}% which is lower than your expected future tax rate
 """
-        else:
-            return f"""You should convert all of your money. Your current tax rate is lower than your expected future tax rate even if you convert everything.
+    return f"""You should convert all of your money. Your current tax rate is lower than your expected future tax rate even if you convert everything.
 """
 
 Row = namedtuple('Row', ['Total_Income', 'Conversion_Amount', 'Federal_Tax', 'State_Tax', 'NIT_Tax', 'Longterm_Tax', 'Total_Tax'])
@@ -48,8 +47,8 @@ def table(keypoints: List[float],
     # fix column names
     df.columns = ['Total Income', 'Conversion Amount', 'Federal Tax', 'State Tax', 'NIT Tax', 'Longterm Tax', 'Total Tax']
     # transform df to only have Total Income, Conversion Amount, Income Tax, Capital Taxes, Total Tax
-    df['Total Income Tax'] = df['Federal Tax'] + df['State Tax'] + df['NIT Tax']
-    df['Total Capital Taxes'] = df['Longterm Tax']
+    df['Total Income Tax'] = df['Federal Tax'] + df['State Tax']
+    df['Total Capital Taxes'] = df['Longterm Tax'] + + df['NIT Tax']
 
 #    df = df[['Conversion Amount', 'Total Income Tax', 'Total Capital Taxes', 'Total Tax']]
 
