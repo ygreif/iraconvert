@@ -105,7 +105,6 @@ def server(input, output, session):
         #import pdb; pdb.set_trace();
         # correspond to sm ec
         width = float(input.window_width())
-        print(width)
         if width < 768:
             return 'xs'
         elif width < 992:
@@ -156,20 +155,13 @@ def server(input, output, session):
 
     @render_plotly
     def taxburden():
-        print("Here")
         income, amounts, tax_brackets, future_rate = compute()
 
         plot = graph.plot_tax_brackets(income, amounts['longterm_gains'], amounts['capital_income'], tax_brackets, future_rate, amounts['assets'])
-        print(plot)
-        # if size is less than md hide the legend
-        # time how long it takes to call size()
-        start = time.time()
 
         if size() in ('xs', 'sm'):
             plot.update_layout(showlegend=False)
         # elapsed time
-        print(f"Time to call size: {time.time() - start}")
-        print("done")
         return plot  #.update_layout(autosize=True, height=Noneb, width=None).update_traces(marker=dict(size=10))  # Ensure it adapts dynamically
 
 
