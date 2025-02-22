@@ -17,7 +17,7 @@ def explain(current_income: float,
     elif future_rate < .15:
         return "Your predicted future rate seems unrealistically low. Are you sure you're not missing anything?"
     elif tax_brackets[0].total_income_tax() > future_rate:
-        if tax_brackets[0].total_income_tax() > future_rate + .01:
+        if tax_brackets[0].total_income_tax() < future_rate + .01:
             return "Your current tax rate is slightly higher than your future tax rate. You might consider converting, but it's not a clear win."
         else:
             return "Your current tax rate is higher than your future tax rate. It might not be worth converting."
