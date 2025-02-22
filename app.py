@@ -1,3 +1,5 @@
+import time
+
 import seaborn as sns
 
 from shiny import App, render, ui, reactive
@@ -12,12 +14,21 @@ from shared import dollarize, remove_dollar_formatting, clean_df
 app_ui = ui.page_sidebar(
     ui.sidebar(
         ui.tags.script("""
-        function updateSize() {
-            Shiny.setInputValue("window_width", window.innerWidth);
-        }
-        window.addEventListener("resize", updateSize);
-        updateSize();  // Call on load
-    """),
+    function debounce(func, wait) {
+        let timeout;
+        return function() {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => func(), wait);
+        };
+    }
+
+    const updateWidth = debounce(function() {
+        Shiny.setInputValue('window_width', window.innerWidth);
+    }, 250);  // Only update after 250ms of no resizing
+
+    document.addEventListener('DOMContentLoaded', updateWidth);
+    window.addEventListener('resize', updateWidth);
+        """),
         ui.input_text("assets", label="IRA/401k Assets", value="$750,000"),
         ui.input_text("pretax_income", label="Taxable Income", value="$100,000"),
         ui.input_text("capital_income", label="Capital Income", value="$40,000"),
@@ -88,9 +99,10 @@ def server(input, output, session):
 
     @reactive.calc
     def size():
+        #import pdb; pdb.set_trace();
         # correspond to sm ec
         width = float(input.window_width())
-
+        print(width)
         if width < 768:
             return 'xs'
         elif width < 992:
@@ -141,13 +153,20 @@ def server(input, output, session):
 
     @render_plotly
     def taxburden():
+        print("Here")
         income, amounts, tax_brackets, future_rate = compute()
 
         plot = graph.plot_tax_brackets(income, amounts['longterm_gains'], amounts['capital_income'], tax_brackets, future_rate, amounts['assets'])
+        print(plot)
         # if size is less than md hide the legend
-        if size() == 'xs' or size() == 'sm':
-            plot.update_layout(showlegend=False)
+        # time how long it takes to call size()
+        start = time.time()
 
+        if size() in ('xs', 'sm'):
+            plot.update_layout(showlegend=False)
+        # elapsed time
+        print(f"Time to call size: {time.time() - start}")
+        print("done")
         return plot  #.update_layout(autosize=True, height=Noneb, width=None).update_traces(marker=dict(size=10))  # Ensure it adapts dynamically
 
 
