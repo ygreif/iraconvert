@@ -32,6 +32,47 @@ def min_key(indices, brackets):
                 min_value = value
     return min_key, brackets[min_key][indices[min_key]]
 
+
+def compute_taxes(income, capital_income, investment_income, federal_brackets, state_brackets, longterm_brackets, nii_brackets):
+    # brackets are in the form [(rate, max_threshold), ...]
+    federal_tax, state_tax, nit_tax, longterm_tax = 0, 0, 0, 0
+    prev_bracket = 0
+    for rate, bracket in federal_brackets:
+        if income > prev_bracket:
+            federal_tax += (min(income, bracket) - prev_bracket) * rate
+        else:
+            break
+        prev_bracket = bracket
+
+    prev_bracket = 0
+    for rate, bracket in state_brackets:
+        if income > prev_bracket:
+            state_tax += (min(income, bracket) - prev_bracket) * rate
+        else:
+            break
+        prev_bracket = bracket
+
+
+    max_rate = 0
+    for rate, bracket in longterm_brackets:
+        if income < bracket:
+            max_rate = rate
+            break
+        else:
+            continue
+    longterm_tax = capital_income * max_rate
+
+    max_rate = 0
+    for rate, bracket in nii_brackets:
+        if income < bracket:
+            max_rate = rate
+            break
+        else:
+            continue
+    nit_tax = investment_income * max_rate
+    return federal_tax, state_tax, nit_tax, longterm_tax
+
+
 def rates(base_income, max_convert, federal_brackets, state_brackets, longterm_brackets, nii_brackets, bracket_mode='combine', capital_mode='marginal'):
     indices = {'state': 0, 'federal': 0, 'nit': 0, 'longterm': 0}
     brackets = {'state': state_brackets, 'federal': federal_brackets, 'nit': nii_brackets, 'longterm': longterm_brackets}
@@ -39,7 +80,6 @@ def rates(base_income, max_convert, federal_brackets, state_brackets, longterm_b
     prev_bracket = 0
     while has_next(indices, brackets):
         key, (rate, bracket) = min_key(indices, brackets)
-        print("key", key, "rate", rate, "bracket", bracket, "prev_bracket", prev_bracket, indices)
         if base_income > bracket:
             pass
         elif prev_bracket > base_income + max_convert:

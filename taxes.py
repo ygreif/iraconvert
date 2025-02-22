@@ -128,6 +128,9 @@ def get_gains_brackets(year):
 def get_nii_brackets():
     return NII_BRACKETS
 
+def raw_tax_brackets(year, status, state):
+    return {'federal': get_federal_brackets(year)[status], 'state': get_state_brackets(state, year, status), 'longterm': get_gains_brackets(year)[status], 'nit': get_nii_brackets()[status]}
+
 def tax_brackets(base_income, max_convert, longterm_gains, investment_income, year, status, state):
     federal_brackets = get_federal_brackets(year)[status]
     state_brackets = get_state_brackets(state, year, status)

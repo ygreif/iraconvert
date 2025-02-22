@@ -1,11 +1,13 @@
 import seaborn as sns
-from shared import df
 
 from shiny import App, render, ui, reactive
 from shinywidgets import render_plotly, output_widget
 
 import taxes
 import graph
+import summary
+
+from shared import dollarize, remove_dollar_formatting, clean_df
 
 app_ui = ui.page_sidebar(
     ui.sidebar(
@@ -54,28 +56,16 @@ app_ui = ui.page_sidebar(
         ),
         ui.input_numeric("future_tax_rate", "Expected future tax rate", 25, min=0, max=100),
     ),
-    output_widget("taxburden"),
-    #i.output_text_verbatim("text"),
+    ui.layout_columns(
+        output_widget("taxburden", height='500px'),
+        ui.output_text("text"),
+        ui.output_data_frame("table"),
+        col_widths={'md':(12, 3, 9), 'sm':(12, 12, 12) }
+    ),
     title="After Tax Calculator",
 )
 
 DOLLARIZE_TERMS = ["pretax_income", "capital_income", "longterm_gains", "deduction", "assets"]
-
-def remove_dollar_formatting(amount):
-    return float(amount.replace("$", "").replace(",", ""))
-
-def dollarize(input, term):
-    raw_value = input[term]()
-    numeric_value = raw_value
-    try:
-        numeric_value = remove_dollar_formatting(raw_value)
-        if '.' in raw_value:
-            numeric_value = f"${numeric_value:,.2f}"
-        else:
-            numeric_value = f"${numeric_value:,.0f}"
-    except ValueError as e:
-        print(e, term, raw_value)
-    return numeric_value
 
 
     #session.send_input_message(term, numer)
@@ -84,15 +74,13 @@ def dollarize(input, term):
 def server(input, output, session):
     @reactive.effect
     def format_inputs():
-        print("Formatting inputs")
+
         for term in DOLLARIZE_TERMS:
             dollarized_income = dollarize(input, term)
             session.send_input_message(term, {"value": dollarized_income})
 
-
-
-    @render_plotly
-    def taxburden():
+    @reactive.calc
+    def compute():
         amounts = {term: remove_dollar_formatting(input[term]()) for term in DOLLARIZE_TERMS}
         filing_status = input.filing_status()
         tax_year = int(input.tax_year())
@@ -104,9 +92,32 @@ def server(input, output, session):
         income = amounts['pretax_income'] - amounts['deduction']
         tax_brackets = taxes.tax_brackets(income, amounts['assets'], amounts['longterm_gains'], amounts['capital_income'], tax_year, filing_status, state)
         future_rate = input.future_tax_rate() / 100
+        return income, amounts, tax_brackets, future_rate
+
+    @render.text
+    def text():
+        income, amounts, tax_brackets, future_rate = compute()
+        return summary.explain(income, amounts['longterm_gains'], amounts['capital_income'], tax_brackets, amounts['assets'], future_rate)
+
+    @render.data_frame
+    def table():
+        income, amounts, tax_brackets, future_rate = compute()
+        keypoints = [income] + [b.upper for b in tax_brackets]
+        keypoints.sort()
+
+        raw_brackets = taxes.raw_tax_brackets(int(input.tax_year()), input.filing_status(), input.state_tax_bracket())
+        df = summary.table(keypoints, income, amounts['longterm_gains'], amounts['capital_income'], raw_brackets)
+
+        df = df[["Conversion Amount", "Total Income Tax", "Total Capital Taxes", "Total Tax"]]
+
+        return df
+
+    @render_plotly
+    def taxburden():
+        income, amounts, tax_brackets, future_rate = compute()
 
         plot = graph.plot_tax_brackets(income, amounts['longterm_gains'], amounts['capital_income'], tax_brackets, future_rate, amounts['assets'])
-        print(plot)
-        return plot
+        return plot  #.update_layout(autosize=True, height=Noneb, width=None).update_traces(marker=dict(size=10))  # Ensure it adapts dynamically
+
 
 app = App(app_ui, server)

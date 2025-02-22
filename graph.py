@@ -100,8 +100,17 @@ def plot_tax_brackets(current_income: float,
         xaxis_title='Roth Conversion Amount ($)',
         yaxis_title='Margianl Tax Rate',
         hovermode='closest',
-        showlegend=True
+        showlegend=True,
+        height=500
     )
+    fig.update_layout(legend=dict(
+        yanchor="top",
+        orientation="h",
+        xanchor="left",
+        x=0,
+        y=-.15
+    ))
+
     return fig
 
 
