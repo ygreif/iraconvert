@@ -144,6 +144,10 @@ def server(input, output, session):
         income, amounts, tax_brackets, future_rate = compute()
 
         plot = graph.plot_tax_brackets(income, amounts['longterm_gains'], amounts['capital_income'], tax_brackets, future_rate, amounts['assets'])
+        # if size is less than md hide the legend
+        if size() == 'xs' or size() == 'sm':
+            plot.update_layout(showlegend=False)
+
         return plot  #.update_layout(autosize=True, height=Noneb, width=None).update_traces(marker=dict(size=10))  # Ensure it adapts dynamically
 
 
