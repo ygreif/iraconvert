@@ -1,6 +1,8 @@
 from shiny import App, render, ui, reactive
 from shinywidgets import render_plotly, output_widget
 
+import myui.input_text_with_tooltip as uix
+
 import taxes
 import graph
 import summary
@@ -26,12 +28,9 @@ app_ui = ui.page_sidebar(
     window.addEventListener('resize', updateWidth);
         """),
         ui.input_text("assets", label="IRA/401k Assets", value="$750,000"),
-        ui.input_text("pretax_income", label="Taxable Income", value="$100,000",
-                      title="Your total taxable income for the year, including wages, salaries, and other sources"),
-        ui.input_text("capital_income", label="Capital Income", value="$40,000",
-                      title="Income from investments, such as dividends and short-term capital gains"),
-        ui.input_text("longterm_gains", label="Longterm Capital Gains", value="$20,000",
-                      title="Profits from selling assets held for more than a year, typically taxed at a lower rate"),
+        uix.input_text_with_tooltip("pretax_income", label="Wage Income", value="$100,000", tooltip="Wage income after adjustments eg 1040 box 1"),
+        uix.input_text_with_tooltip("capital_income", label="Ordinary Capital Income", tooltip="Ordinary dividends and short term capital gains", value="$40,000"),
+        uix.input_text_with_tooltip("longterm_gains", label="Qualified Capital Gains", value="$20,000", tooltip="Qualified dividends and longterm capital gains"),
         ui.input_select("tax_year", "Tax Year", {"2024": 2024, "2025": 2025}),
         ui.input_radio_buttons(
             "filing_status",
