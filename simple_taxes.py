@@ -41,8 +41,8 @@ class TaxSchedule:
         return self._construct_bracket_from_two_points(conversion_amount, conversion_amount)
 
     def _construct_bracket_from_two_points(self, conversion_amount, conversion_amount2):
-        state_rate, state_marginal = self.rate_at(self.state_income() +  conversion_amount2, self.state_brackets)
-        federal_rate, federal_marginal = self.rate_at(self.ordinary_income() + conversion_amount2, self.federal_brackets)
+        state_rate, state_marginal = self.rate_at(self.state_income() +  conversion_amount, self.state_brackets)
+        federal_rate, federal_marginal = self.rate_at(self.ordinary_income() + conversion_amount, self.federal_brackets)
         nit_rate, nit_marginal = self.rate_at(self.ordinary_income() + conversion_amount2, self.nit_brackets, is_capital=True)
         longterm_rate, longterm_marginal = self.rate_at(self.ordinary_income() + conversion_amount2, self.longterm_brackets, is_capital=True)
 
@@ -107,8 +107,9 @@ class TaxSchedule:
             elif income + max_conversion_amount > bound:
                 keyponints.append(bound - income)
             else:
-                keyponints.append(income + max_conversion_amount - income)
+#                keyponints.append(income + max_conversion_amount - income)
                 break
+        print("Getting keypoints", income, brackets, keyponints)
         return keyponints
 
     # return absolute rate and marginal rate
@@ -131,25 +132,28 @@ class TaxSchedule:
         keypoints = set([0])
         keypoints.update(self._keypoints(self.ordinary_income(), self.federal_brackets, max_conversion_amount))
         keypoints.update(self._keypoints(self.state_income(), self.state_brackets, max_conversion_amount))
+        keypoints.add(max_conversion_amount)
         return sorted(list(keypoints))
 
     def _construct_capital_keypoints(self, max_conversion_amount):
-        keypoints = set([0])
+        keypoints = set()
         keypoints.update(self._keypoints(self.ordinary_income(), self.nit_brackets, max_conversion_amount))
         keypoints.update(self._keypoints(self.ordinary_income(), self.longterm_brackets, max_conversion_amount))
         return sorted(list(keypoints))
 
     def tax_curve(self, max_conversion_amount):
+        print("Calculing income keypoints", self.state_brackets, self.federal_brackets)
         income_keypoints = self._construct_income_keypoints(max_conversion_amount)
         capital_keypoints = self._construct_capital_keypoints(max_conversion_amount)
 
         capital_taxes = []
+        print(capital_keypoints, self.ordinary_income())
         for conversion_amount in capital_keypoints:
             capital_taxes.append(self._construct_bracket_from_one_point(conversion_amount))
 
         income_only_curve = []
         for i in range(len(income_keypoints) - 1):
-            income_only_curve.append(self._construct_bracket_from_two_points(keypoints[i], keypoints[i + 1]))
+            income_only_curve.append(self._construct_bracket_from_two_points(income_keypoints[i], income_keypoints[i + 1]))
 
         all_keypoints = sorted(list(set(income_keypoints + capital_keypoints)))
         entire_curve = []

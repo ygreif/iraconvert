@@ -118,8 +118,8 @@ class TestTaxSchedule(unittest.TestCase):
 
     def test_keypoints(self):
         brackets = [(0.1, 9875), (0.12, 40125), (0.22, 50000), (0.3, 99999999)]
-        self.assertEqual(self.tax_schedule._keypoints(0, brackets, 45000), [9875, 40125, 45000])
-        self.assertEqual(self.tax_schedule._keypoints(40000, brackets, 100000), [125, 10000, 100000])
+        self.assertEqual(self.tax_schedule._keypoints(0, brackets, 45000), [9875, 40125])
+        self.assertEqual(self.tax_schedule._keypoints(40000, brackets, 100000), [125, 10000])
 
     def test_construct_income_keypoints(self):
         max_conversion_amount = 50000
@@ -136,7 +136,7 @@ class TestTaxSchedule(unittest.TestCase):
 
     def test_construct_capital_keypoints(self):
         max_conversion_amount = 50000
-        expected_keypoints = [0, 8000, 50000]
+        expected_keypoints = [8000]
         self.assertEqual(self.tax_schedule._construct_capital_keypoints(max_conversion_amount), expected_keypoints)
 
     def test__construct_bracket_from_two_points(self):
@@ -188,19 +188,109 @@ class TestTaxSchedule(unittest.TestCase):
     def test_tax_curve(self):
         max_conversion_amount = 100000
         entire_schedule = simple_taxes.TaxSchedule(
-            40000,
+            10000,
             self.ordinary_capital_income,
-            self.qualified_capital_income,
+            0,
             self.federal_brackets,
-            self.state_brackets,
+            [(.01, 10000), (.11, 250000), (.2, 99999999)],
             self.nit_brackets,
             self.longterm_brackets,
             self.federal_deduction,
-            self.state_deduction
+            self.federal_deduction
         )
-        income_curve, capital_taxes, entire_curve = self.tax_schedule.tax_curve(max_conversion_amount)
+        income_curve, capital_taxes, entire_curve = entire_schedule.tax_curve(max_conversion_amount)
 
-        #assert(len(capital_taxes))
+        self.assertEqual(len(capital_taxes), 2)
+        self.assertEqual(capital_taxes[0].lower, 48000)
+        self.assertEqual(capital_taxes[0].upper, 48000)
+        self.assertEqual(capital_taxes[0].nit.rate, 0)
+        self.assertEqual(capital_taxes[0].longterm.rate, .15)
+        self.assertEqual(capital_taxes[0].longterm.marginal, .15)
+
+        self.assertAlmostEqual(capital_taxes[1].lower, 92000)
+        self.assertAlmostEqual(capital_taxes[1].upper, 92000)
+        self.assertAlmostEqual(capital_taxes[1].nit.rate, .2)
+        self.assertAlmostEqual(capital_taxes[1].nit.marginal, .2)
+        self.assertAlmostEqual(capital_taxes[1].longterm.rate, .2)
+        self.assertAlmostEqual(capital_taxes[1].longterm.marginal, .05)
+
+        self.assertEqual(len(income_curve), 5)
+
+        self.assertEqual(income_curve[0].lower, 0)
+        self.assertEqual(income_curve[0].upper, 1875)
+        self.assertAlmostEqual(income_curve[0].state.rate, .01)
+        self.assertAlmostEquals(income_curve[0].federal.rate, .1)
+        self.assertEqual(income_curve[0].nit.rate, 0)
+        self.assertEqual(income_curve[0].longterm.rate, 0)
+
+        self.assertEqual(income_curve[1].lower, 1875)
+        self.assertEqual(income_curve[1].upper, 2000)
+        self.assertAlmostEqual(income_curve[1].state.rate, .01)
+        self.assertAlmostEquals(income_curve[1].federal.rate, .12)
+        self.assertEqual(income_curve[1].nit.rate, 0)
+        self.assertEqual(income_curve[1].longterm.rate, 0)
+
+        self.assertEqual(income_curve[2].lower, 2000)
+        self.assertEqual(income_curve[2].upper, 32125)
+        self.assertAlmostEqual(income_curve[2].state.rate, .11)
+        self.assertAlmostEquals(income_curve[2].federal.rate, .12)
+        self.assertEqual(income_curve[2].nit.rate, 0)
+        self.assertEqual(income_curve[2].longterm.rate, 0)
+
+        self.assertEqual(income_curve[3].lower, 32125)
+        self.assertEqual(income_curve[3].upper, 85525 - 8000)
+        self.assertAlmostEqual(income_curve[3].state.rate, .11)
+        self.assertAlmostEquals(income_curve[3].federal.rate, .22)
+        self.assertEqual(income_curve[3].nit.rate, 0)
+        self.assertEqual(income_curve[3].longterm.rate, .15)
+        self.assertAlmostEquals(income_curve[3].longterm.marginal, 0)
+
+        self.assertEqual(income_curve[4].lower, 85525 - 8000)
+        self.assertEqual(income_curve[4].upper, max_conversion_amount)
+        self.assertAlmostEqual(income_curve[4].state.rate, .11)
+        self.assertAlmostEquals(income_curve[4].federal.rate, .3)
+        self.assertEqual(income_curve[4].nit.rate, .2)
+        self.assertEqual(income_curve[4].longterm.rate, .2)
+        self.assertAlmostEquals(income_curve[4].longterm.marginal, 0)
+        self.assertAlmostEquals(income_curve[4].nit.marginal, 0)
+
+        self.assertEqual(len(entire_curve), 7)
+        self.assertEqual(entire_curve[0], income_curve[0])
+        self.assertEqual(entire_curve[1], income_curve[1])
+        self.assertEqual(entire_curve[2], income_curve[2])
+
+        self.assertEqual(entire_curve[3].lower, 32125)
+        self.assertEqual(entire_curve[3].upper, 48000)
+        self.assertAlmostEqual(entire_curve[3].state.rate, .11)
+        self.assertAlmostEquals(entire_curve[3].federal.rate, .22)
+        self.assertEqual(entire_curve[3].nit.rate, 0)
+        self.assertEqual(entire_curve[3].longterm.rate, .15)
+
+        self.assertEqual(entire_curve[4].lower, 48000)
+        self.assertEqual(entire_curve[4].upper, 85525 - 8000)
+
+        self.assertEqual(entire_curve[5].lower, 85525 - 8000)
+        self.assertEqual(entire_curve[5].upper, 92000)
+
+        self.assertEqual(entire_curve[6].lower, 92000)
+        self.assertEqual(entire_curve[6].upper, max_conversion_amount)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 if __name__ == '__main__':
