@@ -1,14 +1,14 @@
-from compute_taxes import TaxBracket
+from simple_taxes import TaxBracket
 from dataclasses import dataclass
 import plotly.graph_objects as go
 from typing import List
 
-eps = 2000
 
 def plot_tax_brackets(current_income: float,
                       longterm_gains: float,
                       investment_income: float,
-                      tax_brackets: List[TaxBracket],
+                      income_brackets: List[TaxBracket],
+                      capital_brackets: List[TaxBracket],
                       future_rate: float,
                       max_conversion: float) -> go.Figure:
     """
@@ -21,46 +21,39 @@ def plot_tax_brackets(current_income: float,
     hovertext = []
     names = []
 
+    total_income = current_income + longterm_gains + investment_income
 
-    for idx in range(len(tax_brackets)):
-        bracket = tax_brackets[idx]
-        income_rate = bracket.state_rate + bracket.federal_rate
-        if bracket.nit > 0 or bracket.longterm > 0:
-            if bracket.nit > 0:
-                marginal_nit = bracket.nit #- cur_nit
-                nit_rate = (investment_income * marginal_nit) / current_income
-                hovertext.append([f"Effective Net Investment Tax rate is {100*nit_rate:.2f}% "])
-                taxes.append([nit_rate + income_rate])
-                names.append(f"NIT tax of {100 * marginal_nit:.2f}% on capital income")
-                cur_nit = bracket.nit
-            if bracket.longterm > 0:
-                marginal_longterm = bracket.longterm #- cur_longterm
-                capital_rate = (longterm_gains * marginal_longterm) / current_income
-                hovertext.append([
-                    f"Longterm capital gains increased by {100 * marginal_longterm:.2f}% increasing your effective tax rate by {100*capital_rate:.2f}%"])
-                names.append(f"Longterm capital gains tax increase of {100* marginal_longterm:.2f}% on capital income")
-                taxes.append([capital_rate + income_rate])
-                cur_longterm = bracket.longterm
-            conversion_amounts.append([bracket.upper - current_income])
+    for idx in range(len(income_brackets)):
+        bracket = income_brackets[idx]
+        if bracket.state.rate:
+            hovertext.append( [f"Federal rate {100*bracket.federal.rate:.2f}%, state rate {100*bracket.state.rate:.2f}%"] * 2)
+            names.append(f"Combined rate {100*(bracket.federal.rate+bracket.state.rate):.2f}%, federal rate {100*bracket.federal.rate:.2f}%, state rate {100*bracket.state.rate:.2f}%")
         else:
-            if bracket.state_rate:
-                hovertext.append( [f"Federal rate {100*bracket.federal_rate:.2f}%, state rate {100*bracket.state_rate:.2f}%"] * 2)
-                names.append(f"Combined rate {100*(bracket.federal_rate+bracket.state_rate):.2f}%, federal rate {100*bracket.federal_rate:.2f}%, state rate {100*bracket.state_rate:.2f}%")
-            else:
-                hovertext.append([f"Federal rate {100*bracket.federal_rate:.2f}%"] * 2)
-                names.append(f"Federal rate {100*bracket.federal_rate:.2f}%")
-            taxes.append([bracket.state_rate + bracket.federal_rate] * 2)
-            conversion_amounts.append([bracket.lower - current_income, bracket.upper - current_income])
+            hovertext.append([f"Federal rate {100*bracket.federal.rate:.2f}%"] * 2)
+            names.append(f"Federal rate {100*bracket.federal.rate:.2f}%")
+        taxes.append([bracket.state.rate + bracket.federal.rate] * 2)
+        conversion_amounts.append([bracket.lower - current_income, bracket.upper - current_income])
 
-    # apply eps to brackets bordering nit and longterm points
-    """
-    for idx in range(len(taxes)):
-        if tax_brackets[idx].nit > 0 or tax_brackets[idx].longterm > 0:
-            if idx > 0:
-                conversion_amounts[idx - 1][1] -= eps
-            if idx < len(conversion_amounts) - 1:
-                conversion_amounts[idx + 1][0] += eps
-    """
+    for idx in range(len(capital_brackets)):
+        bracket = capital_brackets[idx]
+        income_rate = bracket.state.rate + bracket.federal.rate
+        if bracket.nit.marginal > 0:
+            marginal_nit = bracket.nit.marginal #- cur_nit
+            nit_rate = ((investment_income + longterm_gains) * marginal_nit) / total_income
+            hovertext.append([f"Effective Net Investment Tax rate is {100*nit_rate:.2f}% "])
+            taxes.append([nit_rate + income_rate])
+            names.append(f"NIT tax of {100 * marginal_nit:.2f}% on capital income")
+        elif bracket.longterm.rate > 0:
+            marginal_longterm = bracket.longterm.marginal
+            capital_rate = (longterm_gains * marginal_longterm) / total_income
+            hovertext.append([
+                f"Longterm capital gains increased by {100 * marginal_longterm:.2f}% increasing your effective tax rate by {100*capital_rate:.2f}%"])
+            names.append(f"Longterm capital gains tax increase of {100* marginal_longterm:.2f}% on capital income")
+            taxes.append([capital_rate + income_rate])
+        else:
+            raise Exception("Bracket labeled capital but no capital gain")
+        conversion_amounts.append([bracket.upper - current_income])
+
     # Create the plot
     fig = go.Figure()
     for amounts, tax, hover, name in zip(conversion_amounts, taxes, hovertext, names):

@@ -78,7 +78,7 @@ app_ui = ui.page_sidebar(
             ui.card_header("Analysis/Recommendation"),
             ui.output_text("text")
         ),
-        ui.output_data_frame("table2"),
+        ui.output_data_frame("table"),
         col_widths={'md':(12, 3, 9), 'sm':(12, 12, 12) }
     ),
     title="After Tax Calculator",
@@ -152,19 +152,6 @@ def server(input, output, session):
 
     @render.data_frame
     def table():
-        income, amounts, tax_brackets, future_rate = compute()
-        keypoints = [income] + [b.upper for b in tax_brackets]
-        keypoints.sort()
-
-        raw_brackets = taxes.raw_tax_brackets(int(input.tax_year()), input.filing_status(), input.state_tax_bracket())
-        df = summary.table(keypoints, income, amounts['longterm_gains'], amounts['capital_income'], raw_brackets)
-
-        df = df[["Conversion Amount", "Total Income Tax", "Total Capital Taxes", "Total Tax"]]
-
-        return df
-
-    @render.data_frame
-    def table2():
         schedule_ = schedule()
         df = summary.table2(schedule_.entire_curve, schedule_.pretax_wage_income, schedule_.initial_tax)
 
@@ -178,6 +165,22 @@ def server(input, output, session):
         income, amounts, tax_brackets, future_rate = compute()
 
         plot = graph.plot_tax_brackets(income, amounts['longterm_gains'], amounts['capital_income'], tax_brackets, future_rate, amounts['assets'])
+
+        if size() in ('xs', 'sm'):
+            plot.update_layout(showlegend=False)
+        # elapsed time
+        return plot  #.update_layout(autosize=True, height=Noneb, width=None).update_traces(marker=dict(size=10))  # Ensure it adapts dynamically
+
+    @reactive.calc
+    def future_rate():
+        future_rate = input.future_tax_rate() / 100
+        return future_rate
+
+    @render_plotly
+    def taxburden2():
+        schedule_ = schedule()
+
+        plot = graph.plot_tax_brackets(schedule_.pretax_wage_income, schedule_.qualified_capital_income, schedule_.ordinary_income, schedule_.income_only_curve, schedule_.capital_taxes, future_rate(), schedule_.max_conversion_amount)
 
         if size() in ('xs', 'sm'):
             plot.update_layout(showlegend=False)

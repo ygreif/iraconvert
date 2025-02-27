@@ -173,3 +173,4 @@ class TaxSchedule:
         self.income_only_curve = income_only_curve
         self.capital_taxes = capital_taxes
         self.entire_curve = entire_curve
+        self.max_conversion_amount = max_conversion_amount
