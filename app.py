@@ -130,21 +130,6 @@ def server(input, output, session):
 
         return taxes.schedule(amounts['pretax_income'], amounts['assets'], amounts['longterm_gains'], amounts['capital_income'], tax_year, filing_status, state)
 
-    @reactive.calc
-    def compute():
-        amounts = {term: remove_dollar_formatting(input[term]()) for term in DOLLARIZE_TERMS}
-        filing_status = input.filing_status()
-        tax_year = int(input.tax_year())
-        if not input.custom_deduction():
-            amounts['deduction'] = taxes.deduction(filing_status, tax_year)
-
-        state = input.state_tax_bracket()
-
-        income = amounts['pretax_income'] - amounts['deduction']
-        tax_brackets = taxes.tax_brackets(income, amounts['assets'], amounts['longterm_gains'], amounts['capital_income'], tax_year, filing_status, state)
-        future_rate = input.future_tax_rate() / 100
-        return income, amounts, tax_brackets, future_rate
-
     @render.text
     def text():
         future_rate = input.future_tax_rate() / 100
