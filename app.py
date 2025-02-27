@@ -156,7 +156,7 @@ def server(input, output, session):
         schedule_ = schedule()
         df = summary.table2(schedule_.entire_curve, schedule_.pretax_wage_income, schedule_.initial_tax)
 
-        df = df[["Conversion Amount", "Total Income Tax", "Total Capital Taxes", "Total Tax"]]
+        df = df[["Conversion Amount", "Additional Tax", "Marginal Tax Rate", "Capital Gains Rate", "Net Investment Tax Rate"]]
 
         return df
 
