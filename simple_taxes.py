@@ -44,6 +44,10 @@ class TaxSchedule:
 
         self.initial_tax = self._construct_bracket_from_one_point(0)
 
+    def additional_tax(self, conversion_amount):
+        new_tax = self._construct_bracket_from_one_point(conversion_amount)
+        return new_tax.total_tax() - self.initial_tax.total_tax()
+
     def _construct_bracket_from_one_point(self, conversion_amount):
         return self._construct_bracket_from_two_points(conversion_amount, conversion_amount)
 

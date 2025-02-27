@@ -14,24 +14,23 @@ def explain(schedule_,
     first_bracket = tax_brackets[0]
 
     if max_conversion <= 0:
-        return "You have no money to convert. Easy decision."
+        return ["You have no money to convert. Easy decision", "Double check if you money in your retirement accounts to convert", "Or start contributing to your retirement accounts"]
     elif future_rate < .15:
-        return "Your predicted future rate seems unrealistically low. Are you sure you're not missing anything?"
+        return ["Your predicted future rate seems unrealistically low. Are you sure you're not missing anything?", "Double check how much you need to draw down from your savings in retirement", "Also consider your state income tax"]
     elif first_bracket.total_income_tax() > future_rate:
-        if first_bracket.total_income_tax() < future_rate + .01:
-            return "Your current tax rate is slightly higher than your future tax rate. You might consider converting, but it's not a clear win."
+        if first_bracket.total_income_tax() < future_rate + .05:
+            return ["Your current tax rate is slightly higher than your future tax rate",  "You might consider converting, but it's not a clear win", "Consider that tax rates might raise in the future"]
         else:
-            return "Your current tax rate is higher than your future tax rate. It might not be worth converting."
+            return ["Your current tax rate is higher than your future tax rate. It might not be worth converting", "Still consider that tax rates might raise in the future"]
     for idx in range(len(tax_brackets) - 1):
         bracket = tax_brackets[idx]
         next_bracket = tax_brackets[idx + 1]
         if bracket.total_income_tax() <= future_rate <= next_bracket.total_income_tax():
-            max_to_convert = dollarize_raw(str(bracket.upper))
-            return f"""Consider converting {dollarize_raw(max_to_convert)} dollars
-That will keep your marginal rate at {100 * bracket.total_income_tax():.2f}% which is lower than your expected future tax rate
-"""
-    return f"""You should convert all of your money. Your current tax rate is lower than your expected future tax rate even if you convert everything.
-"""
+            to_convert = bracket.upper
+            return [f"Consider converting ${to_convert:,.2f} dollars",
+                    f"That will keep your marginal rate at {100 * bracket.total_income_tax():.2f}% which is lower than your expected future tax rate of {100 * future_rate:.2f}%",
+                    f"You will owe an additional ${schedule_.additional_tax(to_convert):,.0f} dollars"]
+    return ["Consider converting everything", "Your current tax rate is lower than your future tax rate", "You will owe an additional ${schedule_.additional_tax(max_conversion):,.0f} dollars"]
 
 Row = namedtuple('Row', ['Total_Income', 'Conversion_Amount', 'Federal_Tax', 'State_Tax', 'NIT_Tax', 'Longterm_Tax', 'Total_Tax', 'Marginal_Tax_Rate', 'Capital_Gains_Rate', 'NIT_Rate'])
 

@@ -76,7 +76,9 @@ app_ui = ui.page_sidebar(
         output_widget("taxburden", height='500px'),
         ui.card(
             ui.card_header("Analysis/Recommendation"),
-            ui.output_text("text")
+            ui.output_text("text"),
+            ui.output_text("text2"),
+            ui.output_text("text3")
         ),
         ui.output_data_frame("table"),
         col_widths={'md':(12, 3, 9), 'sm':(12, 12, 12) }
@@ -128,11 +130,26 @@ def server(input, output, session):
 
         return taxes.schedule(amounts['pretax_income'], amounts['assets'], amounts['longterm_gains'], amounts['capital_income'], tax_year, filing_status, state, custom_deduction)
 
-    @render.text
-    def text():
+    @reactive.calc
+    def generate_text():
         future_rate = input.future_tax_rate() / 100
         schedule_ = schedule()
         return summary.explain(schedule_, schedule_.max_conversion_amount, future_rate)
+
+    @render.text
+    def text():
+        lines = generate_text()
+        return lines[0]
+
+    @render.text
+    def text2():
+        lines = generate_text()
+        return lines[1]
+
+    @render.text
+    def text3():
+        lines = generate_text()
+        return lines[2]
 
     @render.data_frame
     def table():
