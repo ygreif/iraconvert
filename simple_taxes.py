@@ -50,8 +50,8 @@ class TaxSchedule:
     def _construct_bracket_from_two_points(self, conversion_amount, conversion_amount2):
         state_rate, state_marginal = self.rate_at(self.state_income() +  conversion_amount, self.state_brackets)
         federal_rate, federal_marginal = self.rate_at(self.ordinary_income() + conversion_amount, self.federal_brackets)
-        nit_rate, nit_marginal = self.rate_at(self.ordinary_income() + conversion_amount2, self.nit_brackets, is_capital=True)
-        longterm_rate, longterm_marginal = self.rate_at(self.ordinary_income() + conversion_amount2, self.longterm_brackets, is_capital=True)
+        nit_rate, nit_marginal = self.rate_at(self._income_for_capital_brackets() + conversion_amount2, self.nit_brackets, is_capital=True)
+        longterm_rate, longterm_marginal = self.rate_at(self._income_for_capital_brackets() + conversion_amount2, self.longterm_brackets, is_capital=True)
 
         state_tax = self.state_tax(conversion_amount2)
         federal_tax = self.federal_tax(conversion_amount2)
@@ -79,9 +79,12 @@ class TaxSchedule:
 
     def apply_capital_tax(self, capital_income, bracket_income, brackets):
         prev_bound = 0
+        prev_rate = 0
         for rate, bound in brackets:
-            if prev_bound < bracket_income < bound:
+            if prev_bound <= bracket_income < bound:
                 return rate * capital_income
+            prev_bound = bound
+            prev_rate = 0
         raise Exception("Should be in a bracket")
 
     def ordinary_income(self):
@@ -99,12 +102,15 @@ class TaxSchedule:
         return self.apply_income_tax(adjusted_federal_income, self.federal_brackets)
 
     def nit_tax(self, conversion_amount):
-        adjusted_federal_income = self.ordinary_income() + conversion_amount
+        adjusted_federal_income = self._income_for_capital_brackets() + conversion_amount
         return self.apply_capital_tax(self.ordinary_capital_income + self.qualified_capital_income, adjusted_federal_income, self.nit_brackets)
 
     def longterm_tax(self, conversion_amount):
-        adjusted_federal_income = self.ordinary_income() + conversion_amount
+        adjusted_federal_income = self._income_for_capital_brackets() + conversion_amount
         return self.apply_capital_tax(self.qualified_capital_income, adjusted_federal_income, self.longterm_brackets)
+
+    def _income_for_capital_brackets(self):
+        return self.ordinary_income() + self.qualified_capital_income
 
     def _keypoints(self, income, brackets, max_conversion_amount):
         keyponints = []
@@ -143,8 +149,9 @@ class TaxSchedule:
 
     def _construct_capital_keypoints(self, max_conversion_amount):
         keypoints = set()
-        keypoints.update(self._keypoints(self.ordinary_income(), self.nit_brackets, max_conversion_amount))
-        keypoints.update(self._keypoints(self.ordinary_income(), self.longterm_brackets, max_conversion_amount))
+        keypoints.update(self._keypoints(self._income_for_capital_brackets(), self.nit_brackets, max_conversion_amount))
+        keypoints.update(self._keypoints(self._income_for_capital_brackets(), self.longterm_brackets, max_conversion_amount))
+        print(keypoints)
         return sorted(list(keypoints))
 
     def tax_curve(self, max_conversion_amount):
