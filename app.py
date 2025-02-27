@@ -123,12 +123,10 @@ def server(input, output, session):
         amounts = {term: remove_dollar_formatting(input[term]()) for term in DOLLARIZE_TERMS}
         filing_status = input.filing_status()
         tax_year = int(input.tax_year())
-        if not input.custom_deduction():
-            amounts['deduction'] = taxes.deduction(filing_status, tax_year)
-
+        custom_deduction = amounts['deduction'] if input.custom_deduction() else None
         state = input.state_tax_bracket()
 
-        return taxes.schedule(amounts['pretax_income'], amounts['assets'], amounts['longterm_gains'], amounts['capital_income'], tax_year, filing_status, state)
+        return taxes.schedule(amounts['pretax_income'], amounts['assets'], amounts['longterm_gains'], amounts['capital_income'], tax_year, filing_status, state, custom_deduction)
 
     @render.text
     def text():

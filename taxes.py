@@ -148,13 +148,13 @@ def state_deduction(status, year, state):
         return 0
     return STATE_DEDUCTIONS[state][year][status]
 
-def schedule(base_income, max_convert, longterm_gains, investment_income, year, status, state):
+def schedule(base_income, max_convert, longterm_gains, investment_income, year, status, state, custom_deduction=None):
     federal_brackets = get_federal_brackets(year)[status]
     state_brackets = get_state_brackets(state, year, status)
     gains_brackets = get_gains_brackets(year)[status]
     nii_brackets = get_nii_brackets()[status]
 
-    federal_deduction = deduction(status, year)
+    federal_deduction = custom_deduction if custom_deduction is not None else deduction(status, year)
     state_deduction = 0
     schedule = simple_taxes.TaxSchedule(
         base_income, investment_income, longterm_gains, federal_brackets, state_brackets, nii_brackets, gains_brackets, federal_deduction, state_deduction)
