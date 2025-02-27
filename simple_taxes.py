@@ -18,6 +18,11 @@ class TaxBracket:
     nit: TaxBundle
     longterm: TaxBundle
 
+    def total_tax(self):
+        return self.state.amount + self.federal.amount + self.nit.amount + self.longterm.amount
+
+    def total_capital_tax(self):
+        return self.nit.amount + self.longterm.amount
 
     def total_income_tax(self):
         return self.federal.rate + self.state.rate
@@ -36,6 +41,8 @@ class TaxSchedule:
 
         self.federal_deduction = federal_deduction
         self.state_deduction = state_deduction
+
+        self.initial_tax = self._construct_bracket_from_one_point(0)
 
     def _construct_bracket_from_one_point(self, conversion_amount):
         return self._construct_bracket_from_two_points(conversion_amount, conversion_amount)
@@ -160,3 +167,9 @@ class TaxSchedule:
         for i in range(len(all_keypoints) - 1):
             entire_curve.append(self._construct_bracket_from_two_points(all_keypoints[i], all_keypoints[i + 1]))
         return income_only_curve, capital_taxes, entire_curve
+
+    def save_curve(self, max_conversion_amount):
+        income_only_curve, capital_taxes, entire_curve = self.tax_curve(max_conversion_amount)
+        self.income_only_curve = income_only_curve
+        self.capital_taxes = capital_taxes
+        self.entire_curve = entire_curve

@@ -2,6 +2,7 @@ from typing import List
 from collections import namedtuple
 
 import pandas as pd
+from pandas.core.tools.datetimes import _assemble_from_unit_mappings
 
 from compute_taxes import TaxBracket, compute_taxes
 from shared import dollarize_raw, dollarize_raw_str
@@ -36,6 +37,40 @@ Row = namedtuple('Row', ['Total_Income', 'Conversion_Amount', 'Federal_Tax', 'St
 
 DOLLAR_COLUMNS = ['Total Income', 'Conversion Amount', 'Federal Tax', 'State Tax', 'NIT Tax', 'Longterm Tax', 'Total Tax', 'Total Income Tax', 'Total Capital Taxes', 'IRA Conversion Liability']
 
+def tax_bracket_to_row(bracket, ordinary_income):
+    row = Row(
+        ordinary_income + bracket.upper,
+        bracket.upper,
+        bracket.federal.amount,
+        bracket.state.amount,
+        bracket.nit.amount,
+        bracket.longterm.amount,
+        bracket.total_tax()
+    )
+    return row
+
+def table2(entire_curve, ordinary_income, initial_tax):
+    rows = []
+    rows.append(tax_bracket_to_row(initial_tax, ordinary_income))
+    for bracket in entire_curve:
+        rows.append(tax_bracket_to_row(bracket, ordinary_income))
+
+    df = pd.DataFrame(rows)
+    total_tax_no_conversion = rows[0].Total_Tax
+
+    df = pd.DataFrame(rows)
+    # fix column names
+    df.columns = ['Total Income', 'Conversion Amount', 'Federal Tax', 'State Tax', 'NIT Tax', 'Longterm Tax', 'Total Tax']
+    # transform df to only have Total Income, Conversion Amount, Income Tax, Capital Taxes, Total Tax
+    df['Total Income Tax'] = df['Federal Tax'] + df['State Tax']
+    df['Total Capital Taxes'] = df['Longterm Tax'] + + df['NIT Tax']
+    df['IRA Conversion Liability'] = df['Total Tax'].apply(lambda x: x - total_tax_no_conversion)
+    # format the numbers to be dollarized, pass in as a string
+    for col in df.columns:
+        df[col] = df[col].apply(dollarize_raw_str)
+
+    return df
+
 def table(keypoints: List[float],
           current_income: float,
           longterm_gains: float,
@@ -55,8 +90,6 @@ def table(keypoints: List[float],
     df['Total Income Tax'] = df['Federal Tax'] + df['State Tax']
     df['Total Capital Taxes'] = df['Longterm Tax'] + + df['NIT Tax']
     df['IRA Conversion Liability'] = df['Total Tax'].apply(lambda x: x - total_tax_no_conversion)
-#    df = df[['Conversion Amount', 'Total Income Tax', 'Total Capital Taxes', 'Total Tax']]
-
     # format the numbers to be dollarized, pass in as a string
     for col in df.columns:
         df[col] = df[col].apply(dollarize_raw_str)

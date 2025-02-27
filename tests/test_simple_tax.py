@@ -275,23 +275,5 @@ class TestTaxSchedule(unittest.TestCase):
         self.assertEqual(entire_curve[6].lower, 92000)
         self.assertEqual(entire_curve[6].upper, max_conversion_amount)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 if __name__ == '__main__':
     unittest.main()

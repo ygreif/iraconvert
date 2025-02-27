@@ -78,7 +78,7 @@ app_ui = ui.page_sidebar(
             ui.card_header("Analysis/Recommendation"),
             ui.output_text("text")
         ),
-        ui.output_data_frame("table"),
+        ui.output_data_frame("table2"),
         col_widths={'md':(12, 3, 9), 'sm':(12, 12, 12) }
     ),
     title="After Tax Calculator",
@@ -119,6 +119,18 @@ def server(input, output, session):
         return float(input.window_width())
 
     @reactive.calc
+    def schedule():
+        amounts = {term: remove_dollar_formatting(input[term]()) for term in DOLLARIZE_TERMS}
+        filing_status = input.filing_status()
+        tax_year = int(input.tax_year())
+        if not input.custom_deduction():
+            amounts['deduction'] = taxes.deduction(filing_status, tax_year)
+
+        state = input.state_tax_bracket()
+
+        return taxes.schedule(amounts['pretax_income'], amounts['assets'], amounts['longterm_gains'], amounts['capital_income'], tax_year, filing_status, state)
+
+    @reactive.calc
     def compute():
         amounts = {term: remove_dollar_formatting(input[term]()) for term in DOLLARIZE_TERMS}
         filing_status = input.filing_status()
@@ -150,6 +162,16 @@ def server(input, output, session):
         df = df[["Conversion Amount", "Total Income Tax", "Total Capital Taxes", "Total Tax"]]
 
         return df
+
+    @render.data_frame
+    def table2():
+        schedule_ = schedule()
+        df = summary.table2(schedule_.entire_curve, schedule_.pretax_wage_income, schedule_.initial_tax)
+
+        df = df[["Conversion Amount", "Total Income Tax", "Total Capital Taxes", "Total Tax"]]
+
+        return df
+
 
     @render_plotly
     def taxburden():
