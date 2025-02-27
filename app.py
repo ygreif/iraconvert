@@ -147,8 +147,9 @@ def server(input, output, session):
 
     @render.text
     def text():
-        income, amounts, tax_brackets, future_rate = compute()
-        return summary.explain(income, amounts['longterm_gains'], amounts['capital_income'], tax_brackets, amounts['assets'], future_rate)
+        future_rate = input.future_tax_rate() / 100
+        schedule_ = schedule()
+        return summary.explain(schedule_, schedule_.max_conversion_amount, future_rate)
 
     @render.data_frame
     def table():
@@ -159,28 +160,15 @@ def server(input, output, session):
 
         return df
 
-
-    @render_plotly
-    def taxburden():
-        income, amounts, tax_brackets, future_rate = compute()
-
-        plot = graph.plot_tax_brackets(income, amounts['longterm_gains'], amounts['capital_income'], tax_brackets, future_rate, amounts['assets'])
-
-        if size() in ('xs', 'sm'):
-            plot.update_layout(showlegend=False)
-        # elapsed time
-        return plot  #.update_layout(autosize=True, height=Noneb, width=None).update_traces(marker=dict(size=10))  # Ensure it adapts dynamically
-
     @reactive.calc
     def future_rate():
         future_rate = input.future_tax_rate() / 100
         return future_rate
 
     @render_plotly
-    def taxburden2():
+    def taxburden():
         schedule_ = schedule()
-
-        plot = graph.plot_tax_brackets(schedule_.pretax_wage_income, schedule_.qualified_capital_income, schedule_.ordinary_income, schedule_.income_only_curve, schedule_.capital_taxes, future_rate(), schedule_.max_conversion_amount)
+        plot = graph.plot_tax_brackets(schedule_.pretax_wage_income, schedule_.qualified_capital_income, schedule_.ordinary_capital_income, schedule_.income_only_curve, schedule_.capital_taxes, future_rate(), schedule_.max_conversion_amount)
 
         if size() in ('xs', 'sm'):
             plot.update_layout(showlegend=False)

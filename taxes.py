@@ -159,7 +159,6 @@ def schedule(base_income, max_convert, longterm_gains, investment_income, year, 
     schedule = simple_taxes.TaxSchedule(
         base_income, investment_income, longterm_gains, federal_brackets, state_brackets, nii_brackets, gains_brackets, federal_deduction, state_deduction)
     schedule.save_curve(max_convert)
-    import pdb;pdb.set_trace()
     return schedule
 
 STATE_DEDUCTIONS = {

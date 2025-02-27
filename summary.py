@@ -7,18 +7,18 @@ from pandas.core.tools.datetimes import _assemble_from_unit_mappings
 from compute_taxes import TaxBracket, compute_taxes
 from shared import dollarize_raw, dollarize_raw_str
 
-def explain(current_income: float,
-            longterm_gains: float,
-            investment_income: float,
-            tax_brackets: List[TaxBracket],
-            max_conversion: float,
+def explain(schedule_,
+            max_conversion,
             future_rate):
+    tax_brackets = schedule_.income_only_curve
+    first_bracket = tax_brackets[0]
+
     if max_conversion <= 0:
         return "You have no money to convert. Easy decision."
     elif future_rate < .15:
         return "Your predicted future rate seems unrealistically low. Are you sure you're not missing anything?"
-    elif tax_brackets[0].total_income_tax() > future_rate:
-        if tax_brackets[0].total_income_tax() < future_rate + .01:
+    elif first_bracket.total_income_tax() > future_rate:
+        if first_bracket.total_income_tax() < future_rate + .01:
             return "Your current tax rate is slightly higher than your future tax rate. You might consider converting, but it's not a clear win."
         else:
             return "Your current tax rate is higher than your future tax rate. It might not be worth converting."
@@ -26,7 +26,7 @@ def explain(current_income: float,
         bracket = tax_brackets[idx]
         next_bracket = tax_brackets[idx + 1]
         if bracket.total_income_tax() <= future_rate <= next_bracket.total_income_tax():
-            max_to_convert = dollarize_raw(str(bracket.upper - current_income))
+            max_to_convert = dollarize_raw(str(bracket.upper))
             return f"""Consider converting {dollarize_raw(max_to_convert)} dollars
 That will keep your marginal rate at {100 * bracket.total_income_tax():.2f}% which is lower than your expected future tax rate
 """

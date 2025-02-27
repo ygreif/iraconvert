@@ -114,9 +114,8 @@ class TaxSchedule:
             elif income + max_conversion_amount > bound:
                 keyponints.append(bound - income)
             else:
-#                keyponints.append(income + max_conversion_amount - income)
                 break
-        print("Getting keypoints", income, brackets, keyponints)
+
         return keyponints
 
     # return absolute rate and marginal rate
@@ -149,12 +148,10 @@ class TaxSchedule:
         return sorted(list(keypoints))
 
     def tax_curve(self, max_conversion_amount):
-        print("Calculing income keypoints", self.state_brackets, self.federal_brackets)
         income_keypoints = self._construct_income_keypoints(max_conversion_amount)
         capital_keypoints = self._construct_capital_keypoints(max_conversion_amount)
 
         capital_taxes = []
-        print(capital_keypoints, self.ordinary_income())
         for conversion_amount in capital_keypoints:
             capital_taxes.append(self._construct_bracket_from_one_point(conversion_amount))
 

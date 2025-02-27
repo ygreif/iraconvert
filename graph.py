@@ -32,7 +32,7 @@ def plot_tax_brackets(current_income: float,
             hovertext.append([f"Federal rate {100*bracket.federal.rate:.2f}%"] * 2)
             names.append(f"Federal rate {100*bracket.federal.rate:.2f}%")
         taxes.append([bracket.state.rate + bracket.federal.rate] * 2)
-        conversion_amounts.append([bracket.lower - current_income, bracket.upper - current_income])
+        conversion_amounts.append([bracket.lower, bracket.upper])
 
     for idx in range(len(capital_brackets)):
         bracket = capital_brackets[idx]
@@ -52,7 +52,7 @@ def plot_tax_brackets(current_income: float,
             taxes.append([capital_rate + income_rate])
         else:
             raise Exception("Bracket labeled capital but no capital gain")
-        conversion_amounts.append([bracket.upper - current_income])
+        conversion_amounts.append([bracket.upper])
 
     # Create the plot
     fig = go.Figure()
