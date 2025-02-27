@@ -70,7 +70,7 @@ app_ui = ui.page_sidebar(
             "input.state_tax_bracket === 'Custom'",
             ui.markdown("Enter custom state brackets in the bottom panel"),
         ),
-        ui.input_numeric("future_tax_rate", "Expected future tax rate", 25, min=0, max=100),
+        ui.input_numeric("future_tax_rate", "Expected future tax rate", 35, min=0, max=100),
     ),
     ui.layout_columns(
         output_widget("taxburden", height='500px'),
@@ -139,17 +139,26 @@ def server(input, output, session):
     @render.text
     def text():
         lines = generate_text()
-        return lines[0]
+        if lines:
+            return lines[0]
+        else:
+            return ''
 
     @render.text
     def text2():
         lines = generate_text()
-        return lines[1]
+        if len(lines) > 1:
+            return lines[1]
+        else:
+            return ''
 
     @render.text
     def text3():
         lines = generate_text()
-        return lines[2]
+        if len(lines) > 2:
+            return lines[2]
+        else:
+            return ''
 
     @render.data_frame
     def table():
